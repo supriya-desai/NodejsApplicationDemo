@@ -1,0 +1,100 @@
+Task: Kubernetes Setup using Kubeadm In AWS EC2 Ubuntu Server
+
+Prerequisite:
+3- Ubuntu Servers
+
+1- Manager ($GB RAM, 2 Core) t2.medium
+2 Worker (1 GB, 1 Core) t2.micro
+
+Install Kubernetes
+
+===========COMMON FOR MASTER & SLAVES START========
+
+# First, login as root user beacause the following set of commands need to be executed with sudo permissions.
+
+sudo su -
+
+# Install required packages and apt keys.
+
+apt-get update -y
+
+apt-get install -y apt-transport-https
+
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb http://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+
+apt-get update -y
+
+# Turn off swap space
+
+swapoff -a
+sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+# Install and Enable Docker
+
+apt install docker.io -y
+usermod -aG docker ubuntu
+systemctl restart docker
+systemctl enable docker.service
+
+# Install kubeadm, Kubelet and Kubectl
+
+apt-get install -y kubelet kubeadm kubectl kubernetes-cni
+
+# Enable and start kubelet service
+
+systemctl daemon-reload
+systemctl start kubelet
+systemctl enable kubelet.service
+
+========COMMON FOR MASTER & SLAVES END=========
+
+
+=========In MASTER NODE START==================
+#Steps only for Kubernetes Master
+
+# Switch to the root user.
+
+sudo su -
+
+# Initialize Kubernetes master by executing below command.
+
+kubeadm init
+
+#exit root user & execute as normal user
+
+exit
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# To verify, if kubectl is working or not, run the following command.
+
+kubectl get pods -o wide --all-namespaces
+
+# you will notice from the previous command, that all the pods are running except one: 'kube-dns'. For resolving this we will install a #pod network. To install the were pod network, run the following command:
+
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+kubectl get nodes
+
+kubectl get pods --all-namespaces
+
+# Get token 
+
+kubeadm token create --print-join-command
+
+=========In Master Node End====================
+
+Add worker machines to kubernates master
+
+===========In worker nodes start===============
+
+Copy kubeadm join token and execute in worker nodes to join to cluster
+
+============In worker nodes end================
+
