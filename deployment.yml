@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejsapplication-deployment             
+  labels:
+    app: nodejsappdeployment                    
+spec:
+  replicas: 7                             
+  selector:
+    matchLabels:
+      app: nodejspod                             
+  template:
+    metadata:
+      labels:
+        app: nodejspod                            
+    spec:
+      containers:
+      - name: nodejsapp                           
+        image: supriyap/nodejsapp                      
+        ports:
+        - containerPort: 80 
